@@ -4,10 +4,33 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"strconv"
 )
+
+func (j *Json) decode(p interface{}) error {
+	if j.data == nil {
+		return errors.New("simplejson: null value")
+	}
+
+	switch v := p.(type) {
+	case []byte:
+		return j.UnmarshalJSON(v)
+	case string:
+		return j.UnmarshalJSON([]byte(v))
+	case map[string]interface{}:
+		j.data = v
+		return nil
+	case io.Reader:
+		dec := json.NewDecoder(v)
+		dec.UseNumber()
+		return dec.Decode(&j.data)
+	default:
+		return fmt.Errorf("unknown body type: %#v", v)
+	}
+}
 
 // Implements the json.Unmarshaler interface.
 func (j *Json) UnmarshalJSON(p []byte) error {
